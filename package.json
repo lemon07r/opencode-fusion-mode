@@ -1,0 +1,62 @@
+{
+  "name": "opencode-fusion-mode",
+  "version": "0.1.0",
+  "description": "Fusion mode for OpenCode 2: your agent leads, a persistent sidekick implements decided work, and read-only and light subagent lanes take bounded work, each on the model tier you choose.",
+  "license": "MIT",
+  "author": "lemon07r",
+  "type": "module",
+  "main": "./index.ts",
+  "keywords": [
+    "opencode",
+    "opencode-plugin",
+    "subagents",
+    "delegation",
+    "fusion",
+    "multi-model"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lemon07r/opencode-fusion-mode.git"
+  },
+  "homepage": "https://github.com/lemon07r/opencode-fusion-mode#readme",
+  "bugs": {
+    "url": "https://github.com/lemon07r/opencode-fusion-mode/issues"
+  },
+  "exports": {
+    ".": "./index.ts"
+  },
+  "files": [
+    "index.ts",
+    "src",
+    "prompts",
+    "skills",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=22.19.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "check": "tsc --noEmit -p tsconfig.json",
+    "test": "node --test test/*.test.ts",
+    "validate": "bun run check && bun run test",
+    "pack:inspect": "npm pack --dry-run --ignore-scripts"
+  },
+  "peerDependencies": {
+    "@opencode/plugin": ">=2.0.26"
+  },
+  "peerDependenciesMeta": {
+    "@opencode/plugin": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@opencode/plugin": "2.0.26",
+    "@types/node": "^26.6.4",
+    "typescript": "^7.0.2"
+  }
+}
