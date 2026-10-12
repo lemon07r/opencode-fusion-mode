@@ -37,7 +37,7 @@ export const ROLES = {
   scout: {
     description: "Read-only research in external docs, changelogs, and upstream sources; no shell.",
     tier: "medium",
-    steps: 24,
+    steps: 32,
     tools: ["read", "glob", "grep", "webfetch", "websearch"],
   },
   general: {

@@ -1,6 +1,6 @@
 {
   "name": "opencode-fusion-mode",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Fusion mode for OpenCode 2: your agent leads, a persistent sidekick implements decided work, and read-only and light subagent lanes take bounded work, each on the model tier you choose.",
   "license": "MIT",
   "author": "lemon07r",
