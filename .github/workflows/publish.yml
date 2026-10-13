@@ -34,6 +34,9 @@ jobs:
           VERSION=$(node -p "require('./package.json').version")
           if npm view "$NAME@$VERSION" version >/dev/null 2>&1; then
             echo "$NAME@$VERSION is already on npm."
+          elif [ -z "$NODE_AUTH_TOKEN" ] && npm view "$NAME" name 2>&1 | grep -q E404; then
+            # Trusted publishing can't create a package, so the first release is published by hand.
+            echo "::notice::$NAME is not on npm yet. Publish the first version manually, then add a trusted publisher."
           else
             npm install -g npm@latest
             npm publish --access public --provenance
