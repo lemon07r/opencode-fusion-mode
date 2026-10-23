@@ -57,7 +57,7 @@ Models use OpenCode's `provider/model#variant` form. Run `opencode models` to se
 ## What the plugin adds
 
 - **The lanes above**, as subagents with short prompts, permissions, and step limits.
-- **Lead guidance**: a short system section (about 250 words) for top-level `build` and `plan` sessions. It covers what the lead keeps, when to hand a build to the sidekick, how to write a contract, and that a lane's summary is a claim to check. Subagents never see it. The text depends only on your options, so it stays in the prompt cache.
+- **Lead guidance**: a short system section (about 250 words) for top-level `build` and `plan` sessions. It covers what the lead keeps, when to hand a build to the sidekick, how to write a contract, and that a lane's summary is a claim to check. Subagents never see it. The text depends only on your options, so it stays in the prompt cache. Session generation requests (`session.generate`, used by plugins that ask questions about the live session, such as cache-reusing compaction) get the same section, so they reuse that cache too.
 - **A `fusion` skill** with the full procedure: contracts, reviewing results, concurrency, escalation, and recovery. The lead loads it only when it splits multi-step work.
 - **A step-limit fix.** When an agent reaches its `steps` limit, OpenCode ends the request with an assistant message asking for a summary. Gemini and current Claude models reject that with a 400 error, so the lane fails and its work is lost. The plugin moves that message to the user role, so the lane returns its summary instead.
 

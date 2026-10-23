@@ -69,5 +69,11 @@ export default {
         event.system.push({ type: "text", text: guidance });
       }
     });
+    // Session generation replays the agent request; the same system prompt keeps its prompt-cache prefix.
+    await ctx.session.hook("generate", async (event) => {
+      if (leads.has(event.agent) && !(await childSession(event.sessionID))) {
+        event.system.push({ type: "text", text: guidance });
+      }
+    });
   },
 } satisfies Plugin.Plugin;

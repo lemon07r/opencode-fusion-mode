@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.4
+
+- Add the lead guidance to session generation requests (`session.generate`) too. They replay the agent's request, so without the same system section they missed the session's prompt cache after the tool definitions. In a live test, a cache-reusing compaction read 4,806 of 22,874 input tokens from cache before this change and 22,104 of 23,596 after.
+
 ## 0.1.3
 
 - Raise the `reviewer` default from 30 to 40 steps, the same as `sidekick`. In 63 recorded reviews, 7 hit the old 20-step limit, and the resumed ones needed about 26, 29, and 32 steps in total.

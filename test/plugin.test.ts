@@ -175,11 +175,17 @@ test("plugin registers lanes and the skill, and guides only top-level lead sessi
   await hooks.context(lead);
   assert.equal(lead.system.length, 1);
   assert.match(lead.system[0].text, /^# Fusion mode/);
+  const generated = contextEvent("build", "top");
+  await hooks.generate(generated);
+  assert.deepEqual(generated.system, lead.system, "session generation keeps the agent request's system prompt");
 
   for (const [agent, sessionID] of [["build", "child"], ["sidekick", "top"], ["build", "unknown"]]) {
     const event = contextEvent(agent, sessionID);
     await hooks.context(event);
     assert.equal(event.system.length, 0, `${agent}/${sessionID}`);
+    const generated = contextEvent(agent, sessionID);
+    await hooks.generate(generated);
+    assert.equal(generated.system.length, 0, `generate ${agent}/${sessionID}`);
   }
 });
 
