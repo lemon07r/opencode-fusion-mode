@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.2
+
+- Raise the `reviewer` default from 20 to 30 steps; reviews of large diffs were running out of steps before the write-up.
+- `explore`, `reviewer`, and `scout` no longer stop when repository instructions require a tool they don't have, such as a shell-only search CLI; they use their own tools instead.
+- Releases are published to npm from version tags with trusted publishing and provenance.
+
 ## 0.1.1
 
 - Raise the `scout` default from 24 to 32 steps; multi-part research briefs were running out of steps before the write-up.

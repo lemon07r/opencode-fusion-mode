@@ -141,6 +141,16 @@ bun run pack:inspect  # list the files npm would publish
 
 To try a local checkout, point a project at it: `"plugins": ["/path/to/opencode-fusion-mode"]`.
 
+### Releasing
+
+Bump `version` in `package.json`, add a `CHANGELOG.md` entry, and merge to `main`. Then push a matching tag:
+
+```sh
+git tag v0.1.2 && git push origin v0.1.2
+```
+
+The Release workflow checks that the tag matches `package.json`, runs the checks, publishes to npm through trusted publishing (with provenance), and creates the GitHub release from the changelog entry.
+
 ## Credits
 
 The lane design draws on the Fusion mode in [shariq-pi-extensions](https://github.com/shariqriazz/shariq-pi-extensions) for the Pi coding agent.
