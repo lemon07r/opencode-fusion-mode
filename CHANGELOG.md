@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.3
+
+- Raise the `reviewer` default from 30 to 40 steps, the same as `sidekick`. In 63 recorded reviews, 7 hit the old 20-step limit, and the resumed ones needed about 26, 29, and 32 steps in total.
+
 ## 0.1.2
 
 - Raise the `reviewer` default from 20 to 30 steps; reviews of large diffs were running out of steps before the write-up.

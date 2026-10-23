@@ -31,7 +31,7 @@ export const ROLES = {
   reviewer: {
     description: "One fresh-context advisory review of a diff or module; no shell, so save the diff to a file and pass its path.",
     tier: "medium",
-    steps: 30,
+    steps: 40,
     tools: ["read", "glob", "grep"],
   },
   scout: {
