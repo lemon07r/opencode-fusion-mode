@@ -50,6 +50,7 @@ Validation: <exact commands, or none>
 - Default to one blocking handoff. Use background lanes only when you have independent work to do meanwhile.
 - Delegation hands over ownership: don't edit inside a running lane's scope, and don't redo its work afterwards.
 - Resume the same sidekick by session ID for follow-ups; it keeps its context.
+- To redirect a lane still running in the background (a changed requirement, or a user message that affects its work), call `subagent` with its session ID and the new instructions. They steer the current run and a single report still arrives, so don't start a second lane for it.
 - After compaction or a resumed session, check which lanes already finished and what is on disk before relaunching anything.
 
 ## Escalation and recovery

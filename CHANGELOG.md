@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.5
+
+- The `fusion` skill now says how to redirect a background lane mid-run: call `subagent` again with its session ID. OpenCode steers the message into the running child, and the parent still gets a single report (checked live on OpenCode 2.1.4).
+- Type-check and test against `@opencode/plugin` 2.1.4. The minimum supported OpenCode version is still 2.0.26.
+
 ## 0.1.4
 
 - Add the lead guidance to session generation requests (`session.generate`) too. They replay the agent's request, so without the same system section they missed the session's prompt cache after the tool definitions. In a live test, a cache-reusing compaction read 4,806 of 22,874 input tokens from cache before this change and 22,104 of 23,596 after.
