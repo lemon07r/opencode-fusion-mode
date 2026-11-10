@@ -23,19 +23,19 @@ export const ROLES = {
     steps: 80,
   },
   explore: {
-    description: "Read-only codebase tracing and mapping with read, glob, and grep; no shell, so pass saved command output as a file path.",
+    description: "Read-only codebase tracing and mapping with read, glob, and grep; no general shell, so pass other command output as a file path.",
     tier: "medium",
     steps: 30,
     tools: ["read", "glob", "grep"],
   },
   reviewer: {
-    description: "One fresh-context advisory review of a diff or module; no shell, so save the diff to a file and pass its path.",
+    description: "One fresh-context advisory review of a diff or module; no general shell, so save the diff to a file and pass its path.",
     tier: "medium",
     steps: 40,
     tools: ["read", "glob", "grep"],
   },
   scout: {
-    description: "Read-only research in external docs, changelogs, and upstream sources; no shell.",
+    description: "Read-only research in external docs, changelogs, and upstream sources; no general shell.",
     tier: "medium",
     steps: 32,
     tools: ["read", "glob", "grep", "webfetch", "websearch"],
@@ -60,6 +60,7 @@ export const ROLES = {
 
 export type RoleName = keyof typeof ROLES;
 export const ROLE_NAMES = Object.keys(ROLES) as RoleName[];
+export const READ_ONLY_ROLES: readonly RoleName[] = ["explore", "scout", "reviewer"];
 
 const PROMPT_FILE: Record<RoleName, string> = {
   sidekick: "sidekick",
@@ -78,18 +79,23 @@ export function loadPrompt(role: RoleName): string {
 const rule = (action: string, effect: Permission["effect"] = "allow", resource = "*"): Permission => ({ action, resource, effect });
 
 /** Rules appended after the agent's existing ones; the last matching rule wins. */
-export function rolePermissions(role: RoleName, scratchDir: string): Permission[] {
+export function rolePermissions(role: RoleName, options: FusionOptions): Permission[] {
   const spec: RoleSpec = ROLES[role];
   const common = [rule("subagent", "deny"), rule("question", "deny"), rule("skill", "deny", "fusion")];
   if (!spec.tools) return common;
+  const configured = READ_ONLY_ROLES.includes(role) ? [
+    ...options.readOnlyCommands.map((pattern) => rule("shell", "allow", pattern)),
+    ...options.readOnlySkills.map((id) => rule("skill", "allow", id)),
+  ] : [];
   return [
     rule("*", "deny"),
     ...spec.tools.map((tool) => rule(tool)),
+    ...configured,
     rule("read", "ask", "*.env"),
     rule("read", "ask", "*.env.*"),
     rule("read", "allow", "*.env.example"),
     rule("external_directory", "ask"),
-    rule("external_directory", "allow", `${scratchDir}/*`),
+    rule("external_directory", "allow", `${options.scratchDir}/*`),
     ...common,
   ];
 }
@@ -116,9 +122,11 @@ export interface AgentDraft {
 export function applyRole(agent: AgentDraft, role: RoleName, options: FusionOptions, prompt: string): void {
   agent.description = ROLES[role].description;
   agent.mode = "subagent";
-  agent.system = prompt;
+  agent.system = READ_ONLY_ROLES.includes(role) && options.readOnlyCommands.length > 0
+    ? `${prompt}\n\nException to the no-shell rule above: you may run only these shell commands: ${options.readOnlyCommands.map((pattern) => `\`${pattern}\``).join(", ")}. Anything else is denied; don't chain other commands.`
+    : prompt;
   agent.steps = options.roles[role]?.steps ?? ROLES[role].steps;
   const model = roleModel(role, options);
   if (model) agent.model = { ...model };
-  agent.permissions = [...(agent.permissions ?? []), ...rolePermissions(role, options.scratchDir)];
+  agent.permissions = [...(agent.permissions ?? []), ...rolePermissions(role, options)];
 }

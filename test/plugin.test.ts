@@ -24,6 +24,18 @@ test("readOptions defaults: no tiers, build and plan lead, temp scratch dir, ste
   assert.deepEqual(o.leadAgents, ["build", "plan"]);
   assert.equal(o.scratchDir, join(tmpdir(), "opencode-fusion"));
   assert.equal(o.stepCapFix, true);
+  assert.deepEqual(o.readOnlyCommands, []);
+  assert.deepEqual(o.readOnlySkills, []);
+});
+
+test("read-only access options require arrays of non-empty strings", () => {
+  for (const key of ["readOnlyCommands", "readOnlySkills"] as const) {
+    for (const value of [null, "search *", {}, 1, [1], [null], [""], ["   "], ["valid", false]]) {
+      assert.throws(() => opts({ [key]: value }), new RegExp(`${key} must be a list of non-empty strings`));
+    }
+    assert.deepEqual(opts({ [key]: [] })[key], []);
+    assert.deepEqual(opts({ [key]: ["search *", "index"] })[key], ["search *", "index"]);
+  }
 });
 
 test("readOptions rejects typos instead of ignoring them", () => {
@@ -62,7 +74,9 @@ test("applyRole appends rules after existing ones and sets steps and mode", () =
 
 /** Last matching rule wins, as in OpenCode. */
 const decide = (rules: ReturnType<typeof rolePermissions>, action: string, resource = "x") => {
-  const glob = (pattern: string, value: string) => new RegExp(`^${pattern.replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*")}$`).test(value);
+  const glob = (pattern: string, value: string): boolean =>
+    (pattern.endsWith(" *") && pattern.slice(0, -2) === value) ||
+    new RegExp(`^${pattern.replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*")}$`).test(value);
   let effect = "allow";
   for (const r of rules) if (glob(r.action, action) && glob(r.resource, resource)) effect = r.effect;
   return effect;
@@ -70,23 +84,81 @@ const decide = (rules: ReturnType<typeof rolePermissions>, action: string, resou
 
 test("read-only lanes cannot edit or run commands; verifier can run commands but not edit", () => {
   for (const role of ["explore", "reviewer", "scout"] as const) {
-    const rules = rolePermissions(role, "/scratch");
+    const rules = rolePermissions(role, opts({ scratchDir: "/scratch" }));
     assert.equal(decide(rules, "edit"), "deny", role);
     assert.equal(decide(rules, "shell"), "deny", role);
+    assert.equal(decide(rules, "skill", "code-search"), "deny", role);
     assert.equal(decide(rules, "read"), "allow", role);
     assert.equal(decide(rules, "read", "app/.env"), "ask", role);
     assert.equal(decide(rules, "external_directory", "/scratch/review.diff"), "allow", role);
     assert.equal(decide(rules, "external_directory", "/etc/passwd"), "ask", role);
   }
-  const verifier = rolePermissions("verifier", "/scratch");
+  const verifier = rolePermissions("verifier", opts({ scratchDir: "/scratch" }));
   assert.equal(decide(verifier, "shell"), "allow");
   assert.equal(decide(verifier, "edit"), "deny");
-  assert.equal(decide(rolePermissions("scout", "/s"), "webfetch"), "allow");
+  assert.equal(decide(rolePermissions("scout", opts()), "webfetch"), "allow");
   for (const role of ROLE_NAMES) {
-    const rules = rolePermissions(role, "/s");
+    const rules = rolePermissions(role, opts());
     assert.equal(decide(rules, "subagent"), "deny", role);
     assert.equal(decide(rules, "question"), "deny", role);
     assert.equal(decide(rules, "skill", "fusion"), "deny", role);
+  }
+});
+
+test("read-only allowlists follow the deny rule and keep unrelated access denied", () => {
+  const o = opts({ readOnlyCommands: ["search overview *", "search query *"], readOnlySkills: ["code-search", "fusion"] });
+  for (const role of ["explore", "reviewer", "scout"] as const) {
+    const rules = rolePermissions(role, o);
+    assert.deepEqual(rules[0], { action: "*", resource: "*", effect: "deny" });
+    for (const [action, resources] of [["shell", o.readOnlyCommands], ["skill", o.readOnlySkills]] as const) {
+      for (const resource of resources) {
+        assert.ok(rules.findIndex((r) => r.action === action && r.resource === resource && r.effect === "allow") > 0);
+      }
+    }
+    assert.equal(decide(rules, "shell", "search overview"), "allow", role);
+    assert.equal(decide(rules, "shell", "search query symbol"), "allow", role);
+    // OpenCode scans compound commands separately; neither unlisted subcommand is allowed.
+    for (const command of ["ls", "touch file", "search delete index"]) {
+      assert.equal(decide(rules, "shell", command), "deny", role);
+    }
+    assert.equal(decide(rules, "skill", "code-search"), "allow", role);
+    assert.equal(decide(rules, "skill", "other"), "deny", role);
+    assert.equal(decide(rules, "skill", "fusion"), "deny", role);
+    assert.equal(decide(rules, "edit"), "deny", role);
+    assert.equal(decide(rules, "subagent"), "deny", role);
+    assert.equal(decide(rules, "question"), "deny", role);
+    assert.equal(decide(rules, "read", "app/.env"), "ask", role);
+    assert.equal(decide(rules, "read", "app/.env.example"), "allow", role);
+    assert.equal(decide(rules, "external_directory", "/other"), "ask", role);
+  }
+  for (const role of ["sidekick", "general", "worker", "verifier"] as const) {
+    assert.deepEqual(rolePermissions(role, o), rolePermissions(role, opts()), role);
+  }
+});
+
+test("command and skill allowlists work independently", () => {
+  const commands = rolePermissions("explore", opts({ readOnlyCommands: ["search overview *"] }));
+  assert.equal(decide(commands, "shell", "search overview"), "allow");
+  assert.equal(decide(commands, "skill", "code-search"), "deny");
+  const skills = rolePermissions("explore", opts({ readOnlySkills: ["code-search"] }));
+  assert.equal(decide(skills, "shell", "search overview"), "deny");
+  assert.equal(decide(skills, "skill", "code-search"), "allow");
+});
+
+test("lane prompts are byte-identical by default and append only configured commands", () => {
+  const o = opts({ readOnlyCommands: ["search overview *", "search query *"], readOnlySkills: ["code-search"] });
+  for (const role of ROLE_NAMES) {
+    const prompt = loadPrompt(role);
+    for (const defaults of [opts(), opts({ readOnlyCommands: [] }), opts({ readOnlySkills: ["code-search"] })]) {
+      const agent: AgentDraft = {};
+      applyRole(agent, role, defaults, prompt);
+      assert.equal(agent.system, prompt, role);
+    }
+    const agent: AgentDraft = {};
+    applyRole(agent, role, o, prompt);
+    assert.equal(agent.system, ["explore", "reviewer", "scout"].includes(role)
+      ? `${prompt}\n\nException to the no-shell rule above: you may run only these shell commands: \`search overview *\`, \`search query *\`. Anything else is denied; don't chain other commands.`
+      : prompt, role);
   }
 });
 
@@ -99,10 +171,21 @@ test("lead guidance names the scratch dir and drops disabled lanes", () => {
   assert.match(full, /`\/work\/scratch`/);
   assert.match(full, /`sidekick`/);
   assert.match(full, /cheap to check/);
+  assert.match(full, /cannot run commands: save diffs or command output under `\/work\/scratch` and pass the path/);
   const lean = leadGuidance(opts({ roles: { sidekick: { disabled: true }, worker: { disabled: true }, general: { disabled: true }, explore: { disabled: true }, scout: { disabled: true }, reviewer: { disabled: true } } }));
   assert.doesNotMatch(lean, /sidekick|cheap to check|cannot run commands/);
   assert.match(lean, /`verifier` runs named checks/);
   assert.ok(full.split(/\s+/).length < 320, "guidance stays short");
+});
+
+test("lead guidance describes configured commands deterministically and omits disabled lanes", () => {
+  const o = opts({ scratchDir: "/work/scratch", readOnlyCommands: ["search overview *", "search query *"], roles: { scout: { disabled: true } } });
+  const text = leadGuidance(o);
+  assert.equal(text, leadGuidance(o));
+  assert.match(text, /`explore` and `reviewer` can run only these shell commands: `search overview \*`, `search query \*`/);
+  assert.match(text, /For anything else, save diffs or command output under `\/work\/scratch` and pass the path/);
+  assert.doesNotMatch(text, /cannot run commands|`scout`/);
+  assert.equal(leadGuidance(opts({ readOnlySkills: ["code-search"] })), leadGuidance(opts()));
 });
 
 test("reroleTrailingPrefill moves only a trailing text-only assistant turn", () => {
@@ -196,6 +279,24 @@ test("plugin step-cap fix can be turned off", async () => {
     const event = contextEvent("worker", "s", { role: "assistant", content: [{ type: "text", text: "MAX" }] });
     await hooks.context(event);
     assert.equal(event.messages[0].role, stepCapFix ? "user" : "assistant");
+  }
+});
+
+test("plugin wires read-only options into agent transforms and cached lead guidance", async () => {
+  const options = { readOnlyCommands: ["search overview *"], readOnlySkills: ["code-search"] };
+  const { ctx, agents, hooks } = fakeContext(options, { top: {} });
+  await plugin.setup(ctx as never);
+  for (const role of ["explore", "reviewer", "scout"]) {
+    const agent = agents.get(role) as AgentDraft;
+    assert.match(agent.system!, /you may run only these shell commands: `search overview \*`/);
+    assert.equal(decide(agent.permissions!, "shell", "search overview"), "allow");
+    assert.equal(decide(agent.permissions!, "shell", "ls"), "deny");
+    assert.equal(decide(agent.permissions!, "skill", "code-search"), "allow");
+  }
+  for (const hook of ["context", "generate"]) {
+    const event = contextEvent("build", "top");
+    await hooks[hook](event);
+    assert.equal(event.system[0].text, leadGuidance(opts(options)));
   }
 });
 

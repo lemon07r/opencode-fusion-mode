@@ -14,7 +14,7 @@ The lead (your session's agent) owns intent, planning, judgment, and review. One
 
 Lanes can be disabled; use only those your Fusion guidance names, and do that lane's work yourself or in the nearest available lane otherwise.
 
-`explore`, `reviewer`, and `scout` have no shell. When they need command output, run the command yourself and pass the saved file (for a review, write `git diff <range>` to a file in the scratch directory from your Fusion guidance). Read-only work that needs many commands can go to `sidekick` with "no edits" in the contract. Don't move analysis to a light lane because it needs a shell.
+`explore`, `reviewer`, and `scout` have no general shell; they can run only the commands your Fusion guidance lists, if any. When they need other command output, run the command yourself and pass the saved file (for a review, write `git diff <range>` to a file in the scratch directory from your Fusion guidance). Read-only work that needs many commands can go to `sidekick` with "no edits" in the contract. Don't move analysis to a light lane because it needs a shell.
 
 Each lane has a step limit. Give each contract one deliverable that fits, and split large sweeps.
 

@@ -1,5 +1,5 @@
 import type { FusionOptions } from "./options.ts";
-import { enabledRoles, type RoleName } from "./roles.ts";
+import { enabledRoles, READ_ONLY_ROLES, type RoleName } from "./roles.ts";
 
 const LANE_TEXT: Record<RoleName, string> = {
   sidekick: "",
@@ -10,8 +10,6 @@ const LANE_TEXT: Record<RoleName, string> = {
   general: "`general` takes bounded routine work",
   verifier: "`verifier` runs named checks",
 };
-
-const NO_SHELL: RoleName[] = ["explore", "scout", "reviewer"];
 
 const list = (items: string[]) => (items.length < 2 ? items.join("") : `${items.slice(0, -1).join(", ")} and ${items.at(-1)}`);
 
@@ -29,10 +27,12 @@ export function leadGuidance(options: FusionOptions): string {
   }
   const lanes = roles.filter((role) => role !== "sidekick").map((role) => LANE_TEXT[role]);
   if (lanes.length > 0) {
-    const noShell = NO_SHELL.filter(has).map((role) => `\`${role}\``);
+    const noShell = READ_ONLY_ROLES.filter(has).map((role) => `\`${role}\``);
     let text = `- ${list(lanes)}.`;
     if (noShell.length > 0) {
-      text += ` ${list(noShell)} cannot run commands: save diffs or command output under \`${options.scratchDir}\` and pass the path.`;
+      text += options.readOnlyCommands.length === 0
+        ? ` ${list(noShell)} cannot run commands: save diffs or command output under \`${options.scratchDir}\` and pass the path.`
+        : ` ${list(noShell)} can run only these shell commands: ${options.readOnlyCommands.map((pattern) => `\`${pattern}\``).join(", ")}. For anything else, save diffs or command output under \`${options.scratchDir}\` and pass the path.`;
     }
     if (has("worker") || has("general")) text += " Give light lanes only work whose result is cheap to check.";
     lines.push(text);

@@ -19,6 +19,8 @@ export interface FusionOptions {
   models: Partial<Record<Tier, ModelRef>>;
   roles: Record<string, RoleOptions>;
   leadAgents: string[];
+  readOnlyCommands: string[];
+  readOnlySkills: string[];
   scratchDir: string;
   stepCapFix: boolean;
 }
@@ -44,6 +46,14 @@ export function expandHome(path: string): string {
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
+
+function stringList(value: unknown, where: string): string[] {
+  if (value === undefined) return [];
+  if (!Array.isArray(value) || value.some((item) => typeof item !== "string" || item.trim() === "")) {
+    throw new Error(`${where} must be a list of non-empty strings`);
+  }
+  return value;
+}
 
 /** Validates plugin options. Unknown roles are rejected so a typo does not silently do nothing. */
 export function readOptions(raw: unknown, knownRoles: readonly string[]): FusionOptions {
@@ -95,5 +105,10 @@ export function readOptions(raw: unknown, knownRoles: readonly string[]): Fusion
 
   if (input.stepCapFix !== undefined && typeof input.stepCapFix !== "boolean") throw new Error("stepCapFix must be true or false");
 
-  return { models, roles, leadAgents, scratchDir, stepCapFix: input.stepCapFix !== false };
+  return {
+    models, roles, leadAgents, scratchDir,
+    readOnlyCommands: stringList(input.readOnlyCommands, "readOnlyCommands"),
+    readOnlySkills: stringList(input.readOnlySkills, "readOnlySkills"),
+    stepCapFix: input.stepCapFix !== false,
+  };
 }
