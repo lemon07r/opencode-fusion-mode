@@ -20,7 +20,7 @@ export const ROLES = {
   sidekick: {
     description: "Persistent owner of already-decided implementation and concrete-failure debugging; resume the same session for follow-ups.",
     tier: "medium",
-    steps: 40,
+    steps: 80,
   },
   explore: {
     description: "Read-only codebase tracing and mapping with read, glob, and grep; no shell, so pass saved command output as a file path.",

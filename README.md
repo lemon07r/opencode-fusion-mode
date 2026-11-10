@@ -73,7 +73,7 @@ Models use OpenCode's `provider/model#variant` form. Run `opencode models` to se
     // Per-lane overrides.
     "roles": {
       "reviewer": { "model": "provider/model#high" },
-      "sidekick": { "steps": 60 },
+      "sidekick": { "steps": 120 },
       "scout": { "disabled": true }
     },
 
@@ -99,7 +99,7 @@ Your own `agents` config is applied after the plugin and wins field by field; pe
 ```jsonc
 {
   "agents": {
-    "sidekick": { "steps": 60 },
+    "sidekick": { "steps": 120 },
     "reviewer": { "model": "anthropic/claude-sonnet-4-5" }
   }
 }

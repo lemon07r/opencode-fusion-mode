@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.6
+
+- Raise the `sidekick` default from 40 to 80 steps. Over 30 days of recorded sessions, 62 of about 350 sidekick reports (18%) stopped at the 40-step limit. Finishing the work took a median of 23 more steps (75th percentile 34) after the lead resumed it, and each resume cost an extra lead turn.
+
 ## 0.1.5
 
 - The `fusion` skill now says how to redirect a background lane mid-run: call `subagent` again with its session ID. OpenCode steers the message into the running child, and the parent still gets a single report (checked live on OpenCode 2.1.4).
